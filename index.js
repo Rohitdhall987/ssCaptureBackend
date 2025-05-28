@@ -1,21 +1,19 @@
 import { WebSocketServer } from 'ws';
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from 'openai';
 
 const PORT = 3000;
 const wss = new WebSocketServer({ port: PORT });
 
-// Set up OpenAI API client with your secret key
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // set your env variable
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY ,
 });
-const openai = new OpenAIApi(configuration);
 
 wss.on('connection', (ws) => {
   console.log('🔌 New client connected');
 
   ws.on('message', async (data) => {
     try {
-      // Assume data is JSON string with { type, payload }
       const message = JSON.parse(data.toString());
 
       if (message.type === 'image_with_prompt') {
@@ -23,33 +21,38 @@ wss.on('connection', (ws) => {
 
         console.log('🖼️ Received image and prompt. Calling LLM...');
 
-        // Call GPT-4 Vision (example, adjust API if needed)
-        const response = await openai.chat.completions.create({
-          model: 'gpt-4o-mini', // replace with GPT-4 Vision or Gemini Vision model
+        // Fixed: Correct message structure for OpenAI API
+        const stream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'user',
               content: [
-                { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
-                { role: 'user', content: prompt },
+                {
+                  type: 'text',
+                  text: prompt,
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/png;base64,${imageBase64}`,
+                  },
+                },
               ],
             },
           ],
           stream: true,
         });
 
-        // Stream response back to client
-        response.on('data', (chunk) => {
-          // parse and forward partial text (adjust parsing to your actual API stream format)
-          const textChunk = chunk.choices?.[0]?.delta?.content || '';
+        // Stream the response chunks back to the client
+        for await (const part of stream) {
+          const textChunk = part.choices?.[0]?.delta?.content || '';
           if (textChunk) {
             ws.send(JSON.stringify({ type: 'llm_stream', payload: textChunk }));
           }
-        });
+        }
 
-        response.on('end', () => {
-          ws.send(JSON.stringify({ type: 'llm_stream_end' }));
-        });
+        ws.send(JSON.stringify({ type: 'llm_stream_end' }));
 
       } else {
         console.log('⚠️ Unknown message type');
@@ -62,6 +65,10 @@ wss.on('connection', (ws) => {
 
   ws.on('close', () => {
     console.log('❌ Client disconnected');
+  });
+
+  ws.on('error', (error) => {
+    console.error('❌ WebSocket error:', error);
   });
 });
 
