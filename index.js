@@ -8,9 +8,10 @@ const wss = new WebSocketServer({ port: PORT });
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ,
 });
-
+const clients = new Set();
 wss.on('connection', (ws) => {
   console.log('🔌 New client connected');
+    clients.add(ws);
 
   ws.on('message', async (data) => {
     try {
