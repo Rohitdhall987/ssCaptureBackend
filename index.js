@@ -54,6 +54,15 @@ wss.on('connection', (ws) => {
 
         ws.send(JSON.stringify({ type: 'llm_stream_end' }));
 
+      }else if(message.type==="capture"){
+console.log('📤 Broadcasting image to clients');
+
+    // Broadcast to all other clients
+    for (const client of clients) {
+      if (client !== ws && client.readyState === ws.OPEN) {
+        client.send(data);
+      }
+    }
       } else {
         console.log('⚠️ Unknown message type');
       }
