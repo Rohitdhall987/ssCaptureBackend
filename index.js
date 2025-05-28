@@ -6,12 +6,15 @@ const wss = new WebSocketServer({ port: PORT });
 
 // Initialize OpenAI client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY ,
+  apiKey: process.env.OPENAI_API_KEY,
 });
+
 const clients = new Set();
+
 wss.on('connection', (ws) => {
   console.log('🔌 New client connected');
-    clients.add(ws);
+  
+  clients.add(ws);
 
   ws.on('message', async (data) => {
     try {
@@ -55,17 +58,19 @@ wss.on('connection', (ws) => {
 
         ws.send(JSON.stringify({ type: 'llm_stream_end' }));
 
-      }else if(message.type==="capture"){
-console.log('📤 Broadcasting image to clients');
+      } else if (message.type === 'capture') {
+        console.log('📤 Broadcasting image to clients');
+        
+        // Broadcast to all other clients (send the parsed message, not raw data)
+        const messageString = JSON.stringify(message);
+        for (const client of clients) {
+          if (client !== ws && client.readyState === client.OPEN) {
+            client.send(messageString);
+          }
+        }
 
-    // Broadcast to all other clients
-    for (const client of clients) {
-      if (client !== ws && client.readyState === ws.OPEN) {
-        client.send(data);
-      }
-    }
       } else {
-        console.log('⚠️ Unknown message type');
+        console.log('⚠️ Unknown message type:', message.type);
       }
     } catch (error) {
       console.error('❌ Error processing message:', error);
@@ -75,10 +80,12 @@ console.log('📤 Broadcasting image to clients');
 
   ws.on('close', () => {
     console.log('❌ Client disconnected');
+    clients.delete(ws); // Remove client from set when disconnected
   });
 
   ws.on('error', (error) => {
     console.error('❌ WebSocket error:', error);
+    clients.delete(ws); // Remove client from set on error
   });
 });
 
