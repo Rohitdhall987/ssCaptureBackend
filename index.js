@@ -24,7 +24,7 @@ wss.on('connection', (ws) => {
         console.log('🖼️ Received image and prompt. Calling Gemini...');
 
         // Decode base64 into Uint8Array
-        const imageBuffer = Uint8Array.from(Buffer.from(imageBase64, 'base64'));
+        // const imageBuffer = Uint8Array.from(Buffer.from(imageBase64, 'base64'));
 
         const model = genAI.getGenerativeModel({
           model: 'gemini-1.5-flash',
@@ -35,7 +35,7 @@ wss.on('connection', (ws) => {
           {
             inlineData: {
               mimeType: 'image/png', // or 'image/jpeg' for better compression
-              data: imageBuffer,
+              data: imageBase64,
             },
           },
         ]);
