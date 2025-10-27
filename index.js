@@ -31,7 +31,7 @@ wss.on('connection', (ws) => {
         });
 
         const result = await model.generateContent([
-          { text: prompt },
+          { text: "what is the answer of that multiple choice question showing in the image. Choose answer from the following options." },
           {
             inlineData: {
               mimeType: 'image/png', // or 'image/jpeg' for better compression
