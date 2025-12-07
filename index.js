@@ -27,7 +27,7 @@ wss.on('connection', (ws) => {
         // const imageBuffer = Uint8Array.from(Buffer.from(imageBase64, 'base64'));
 
         const model = genAI.getGenerativeModel({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-2.5-flash-live',
         });
 
         const result = await model.generateContent([
